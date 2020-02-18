@@ -32,14 +32,11 @@ library(data.table)
 # create a vector with the file names and paths
 
 files <- dir(
-             # Select the folder where the files are stored.
+             
              "/Users/benmachon/Downloads/UKDA-6614-tab/tab/",
-             # Tell R which pattern you want present in the files it will display.
+             
              pattern = "indresp",
-             # We want this process to repeat through the entire folder.
              recursive = TRUE,
-             # And finally want R to show us the entire file path, rather than just
-             # the names of the individual files.
              full.names = TRUE)
 
 # Select only files from the UKHLS.
@@ -74,8 +71,15 @@ Now we have got the data from all 7 waves in the same data frame **all7** in the
 
 ```{r}
 Long <- all7 %>%
-  ...
-Long
+
+pivot_longer(a_memorig:g_vote6, names_to = "variable", values_to = "value") %>%
+  
+      separate(variable, into = c("wave", "variable"), sep = "_", extra = "merge") %>%
+  
+      pivot_wider(names_from = variable, values_from = value) %>%
+
+view(Long)
+
 ```
 
 ## Filter and recode (20 points)
@@ -84,14 +88,12 @@ Now we want to filter the data keeping only respondents from the original UKHLS 
 
 ```{r}
 Long <- Long %>%
-        filter(...) %>%
-        mutate(sex_dv = ...) %>%
-        mutate(vote6 = ...)
-
-Long %>%
-        ...
-Long %>%
-        ...
+        filter(memorig == 1) %>%
+        mutate(sex_dv = case_when(sex_dv == 1 ~ "Male", sex_dv == 2 ~ "Female")) %>%
+        mutate(vote6 = recode(vote6, "1" = 1, "2" = 2, "3" = 3, "4" = 4, .default = NA_real_)) 
+         
+table(Long$vote6) 
+table(Long$sex_dv) 
 
 ```
 
@@ -101,7 +103,9 @@ Political interest is an ordinal variable, but we will treat it as interval and 
 
 ```{r}
 meanVote6 <- Long %>%
-        ...
+group_by(wave, sex_dv) %>%
+summarise(meanVote6 = mean(vote6, na.rm = TRUE))%>%
+na.omit()
         
 meanVote6
 ```
@@ -121,8 +125,10 @@ Write a short interpretation of your findings.
 
 ```{r}
 meanVote6 %>%
-        ...
+pivot_wider(names_from = wave, values_from = meanVote6)
 ```
+
+The vote6 variable runs from value 1 (very interested in politics) to 4 (not interested in politics). In this study, females have shown a slight increase in political interest (0.111037) from wave 1 to wave 7. Males have also shown an increase in political of around 0.11 (0.111114). therefore we can infer that the subjects of this study have shown an overall increase in political interest at a similar average rate. The values for females begin at 2.839437 and finish at 2.728400 where as the male figure begins at 2.527112 and finishes at 2.415998. Therefore, it can be stated that from wave 1 to wave 7, the males within the study have shown a greater interest in politics than the females.
 
 ## Estimate stability of political interest (30 points)
 
@@ -147,6 +153,20 @@ Write the R code that does the following.
 5. Write a short interpretation of your findings.
 
 ```{r}
-...
+#1
+stability <- Long %>%
+  na.omit(vote6)
+
+#2
+stability <- stability %>%
+  group_by(pidp) %>%
+mutate(delta = order_by(wave, abs(vote6 - lag(vote6))))%>%
+  na.omit(delta)
+
+#3 
+ mean(stability$delta)
+
+ 
+ # I struggled to find a solution to part 3 and therefore was also unable to answer part 4
 
 ```
